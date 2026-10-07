@@ -1,0 +1,28 @@
+#Jax Property Intelligence
+
+## Project Goal
+Build a Interactive Jacksonville property intelligence platform using pythin,PostgreSQL/PostGIS, SQL, and public GIS data.
+
+## MVP
+The application will allow a user to search for Duval County property and view:
+
+-Parcel information
+-Property value information
+-Sales histroy
+-Zoning
+-FEMA flood information
+-Interactive map
+
+# Core Technology
+-Python
+-PostgreSQL
+-PostGIS
+-SQL
+-Streamlit
+-Github
+
+## Current Phase
+Project setup
+
+## Next Milestone
+V0.1 - Connect Python to PostgreSQL/PostGIS
