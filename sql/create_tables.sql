@@ -101,3 +101,19 @@ SELECT
 FROM parcels p
 JOIN properties pr
     ON p.strap = pr.strap;
+
+    CREATE TABLE IF NOT EXISTS property_addresses (
+    address_id BIGSERIAL PRIMARY KEY,
+    strap VARCHAR(20) NOT NULL,
+    site_number VARCHAR(20),
+    site_prefix VARCHAR(20),
+    site_street VARCHAR(255),
+    site_type VARCHAR(50),
+    site_unit VARCHAR(50),
+    site_city VARCHAR(100),
+    site_zip VARCHAR(20),
+    building_number VARCHAR(20)
+);
+
+CREATE INDEX IF NOT EXISTS idx_property_addresses_strap
+ON property_addresses (strap);
