@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Jax Property Intelligence | Riverside Explorer</title>
+
+    <!-- Leaflet mapping library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #eef3f8;
+        }
+
+        header {
+            padding: 16px 20px;
+            background: #17324d;
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 23px;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: #d5e2ee;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 12px 20px;
+            background: #eef3f8;
+            border-bottom: 1px solid #d1dce7;
+        }
+
+        #addressSearch {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+            padding: 11px;
+            font-size: 14px;
+            border: 1px solid #aebfce;
+            border-radius: 5px;
+        }
+
+        #searchButton {
+            padding: 11px 20px;
+            cursor: pointer;
+            background: #17324d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        #searchButton:hover {
+            background: #24537b;
+        }
+
+        #searchStatus {
+            font-size: 13px;
+            color: #17324d;
+        }
+
+        #map {
+            height: calc(100vh - 155px);
+            min-height: 400px;
+            width: 100%;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #17324d;
+        }
+
+        .property-popup {
+            line-height: 1.7;
+            min-width: 200px;
+        }
+
+        .property-popup .value {
+            font-weight: bold;
+        }
+
+        .map-info {
+            position: absolute;
+            bottom: 30px;
+            left: 12px;
+            z-index: 1000;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .map-info strong {
+            color: #17324d;
+        }
+
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 19px;
+            }
+
+            #addressSearch {
+                max-width: none;
+            }
+
+            #map {
+                height: calc(100dvh - 190px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- WEBSITE HEADER -->
+    <header>
+        <h1>Jax Property Intelligence</h1>
+        <p>
+            Riverside Property Explorer |
+            Python • PostgreSQL • PostGIS • Leaflet
+        </p>
+    </header>
+
+    <!-- ADDRESS SEARCH -->
+    <div class="search-bar">
+
+        <input type="text" id="addressSearch" placeholder="Search address (e.g., 2609 PARK ST)"
+            aria-label="Search property address">
+
+        <button id="searchButton">
+            Search Property
+        </button>
+
+        <span id="searchStatus">
+            Loading parcel data...
+        </span>
+
+    </div>
+
+    <!-- MAP CONTAINER -->
+    <div id="map"></div>
+
+    <div class="map-info" id="mapInfo">
+        <strong>Riverside Parcel Explorer</strong>
+        <div id="parcelCount">Loading parcels...</div>
+        <div>Click a parcel to view property information</div>
+    </div>
+
+    <!-- LEAFLET JAVASCRIPT -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+
+        // =====================================================
+        // 1. CREATE THE INTERACTIVE MAP
+        // =====================================================
+
+        const map = L.map("map").setView(
+            [30.315, -81.680],
+            15
+        );
+
+        // OpenStreetMap basemap
+        L.tileLayer(
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            }
+        ).addTo(map);
+
+
+        // =====================================================
+        // 2. PROPERTY VALUE FORMATTING
+        // =====================================================
+
+        function formatMoney(value) {
+
+            if (value === null || value === undefined || value === "") {
+                return "Not available";
+            }
+
+            return "$" + Number(value).toLocaleString(
+                "en-US",
+                {
+                    maximumFractionDigits: 0
+                }
+            );
+        }
+
+
+        // =====================================================
+        // 3. NORMALIZE SEARCH TEXT
+        // =====================================================
+
+        function normalizeAddress(value) {
+
+            return String(value || "")
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, " ");
+
+        }
+
+
+        // =====================================================
+        // 4. LOAD PROPERTY DATA FROM GEOJSON
+        // =====================================================
+
+        let parcelLayer = null;
+
+        const searchStatus = document.getElementById("searchStatus");
+        const searchButton = document.getElementById("searchButton");
+
+        searchButton.disabled = true;
+
+        fetch("data/riverside_parcels.geojson")
+
+            .then(response => {
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Unable to load parcel GeoJSON: HTTP " +
+                        response.status
+                    );
+                }
+
+                return response.json();
+
+            })
+
+            .then(data => {
+
+                console.log(
+                    "GeoJSON features received:",
+                    data.features.length
+                );
+
+
+                // =================================================
+                // 5. CREATE PARCEL POLYGONS
+                // =================================================
+
+                parcelLayer = L.geoJSON(data, {
+
+                    style: {
+                        color: "#0066cc",
+                        weight: 1.5,
+                        fillColor: "#00bcd4",
+                        fillOpacity: 0.15
+                    },
+
+                    onEachFeature: function (feature, layer) {
+
+                        const p = feature.properties || {};
+
+
+                        // =========================================
+                        // 6. CREATE PROPERTY INFORMATION POPUP
+                        // =========================================
+
+                        // Build text nodes safely instead of inserting
+                        // source address values directly into HTML.
+                        const popup = document.createElement("div");
+                        popup.className = "property-popup";
+
+                        const title = document.createElement("div");
+                        title.className = "popup-title";
+                        title.textContent = p.address || "Address unavailable";
+                        popup.appendChild(title);
+
+                        function addField(label, value) {
+                            const line = document.createElement("div");
+                            const bold = document.createElement("strong");
+
+                            bold.textContent = label + ": ";
+                            line.appendChild(bold);
+                            line.appendChild(
+                                document.createTextNode(value ?? "N/A")
+                            );
+
+                            popup.appendChild(line);
+                        }
+
+                        addField("City", p.city);
+                        addField("STRAP", p.strap);
+                        addField(
+                            "Market Value",
+                            formatMoney(p.market_value)
+                        );
+                        addField(
+                            "Assessed Value",
+                            formatMoney(p.assessed_value)
+                        );
+
+                        layer.bindPopup(popup);
+
+
+                        // =========================================
+                        // 7. HIGHLIGHT PARCEL ON MOUSEOVER
+                        // =========================================
+
+                        layer.on("mouseover", function () {
+
+                            this.setStyle({
+                                weight: 3,
+                                color: "#ff8c00",
+                                fillOpacity: 0.35
+                            });
+
+                            this.bringToFront();
+
+                        });
+
+                        layer.on("mouseout", function () {
+
+                            parcelLayer.resetStyle(this);
+
+                        });
+
+                    }
+
+                });
+
+
+                // Add all parcels to the map
+                parcelLayer.addTo(map);
+
+
+                // Zoom to the entire Riverside dataset
+                if (parcelLayer.getLayers().length > 0) {
+                    map.fitBounds(
+                        parcelLayer.getBounds(),
+                        { padding: [25, 25] }
+                    );
+                }
+
+
+                // =================================================
+                // 8. UPDATE MAP INFORMATION
+                // =================================================
+
+                document.getElementById("parcelCount").textContent =
+                    data.features.length.toLocaleString() +
+                    " parcel features";
+
+                searchStatus.textContent =
+                    "Ready — search an address";
+
+                searchButton.disabled = false;
+
+
+                // =================================================
+                // 9. PROPERTY ADDRESS SEARCH
+                // =================================================
+
+                function searchAddress() {
+
+                    const searchText = normalizeAddress(
+                        document.getElementById("addressSearch").value
+                    );
+
+                    searchStatus.textContent = "";
+
+                    if (searchText === "") {
+
+                        searchStatus.textContent =
+                            "Please enter an address.";
+
+                        return;
+                    }
+
+                    let foundLayer = null;
+                    let matchCount = 0;
+
+                    parcelLayer.eachLayer(function (layer) {
+
+                        const address = normalizeAddress(
+                            layer.feature.properties.address
+                        );
+
+                        if (address.includes(searchText)) {
+
+                            matchCount++;
+
+                            if (foundLayer === null) {
+                                foundLayer = layer;
+                            }
+
+                        }
+
+                    });
+
+
+                    // =============================================
+                    // 10. ZOOM TO MATCHING PROPERTY
+                    // =============================================
+
+                    if (foundLayer !== null) {
+
+                        map.fitBounds(
+                            foundLayer.getBounds(),
+                            {
+                                maxZoom: 18,
+                                padding: [50, 50]
+                            }
+                        );
+
+                        foundLayer.openPopup();
+
+                        if (matchCount === 1) {
+
+                            searchStatus.textContent =
+                                "Property found!";
+
+                        } else {
+
+                            searchStatus.textContent =
+                                matchCount +
+                                " matches. Showing first result.";
+
+                        }
+
+                    } else {
+
+                        searchStatus.textContent =
+                            "Address not found in Riverside demo area.";
+
+                    }
+
+                }
+
+
+                // =================================================
+                // 11. CONNECT SEARCH BUTTON
+                // =================================================
+
+                searchButton.addEventListener(
+                    "click",
+                    searchAddress
+                );
+
+
+                // =================================================
+                // 12. ALLOW ENTER KEY TO SEARCH
+                // =================================================
+
+                document.getElementById("addressSearch")
+                    .addEventListener(
+                        "keydown",
+                        function (event) {
+
+                            if (event.key === "Enter") {
+                                searchAddress();
+                            }
+
+                        }
+                    );
+
+            })
+
+            .catch(error => {
+
+                console.error(
+                    "Property GeoJSON loading error:",
+                    error
+                );
+
+                searchStatus.textContent =
+                    "Failed to load property data.";
+
+                document.getElementById("parcelCount")
+                    .textContent = "Data unavailable";
+
+                alert(
+                    "Unable to load the property dataset. " +
+                    "Check that you are running the local web server."
+                );
+
+            });
+
+    </script>
+
+</body>
+
+</html>
