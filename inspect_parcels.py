@@ -1,10 +1,11 @@
+import os
 import geopandas as gpd
 
 from shapely.validation import explain_validity
 
 from shapely import make_valid
 
-parcels = gpd.read_file(r"C:\Users\knigh\Downloads\GIS Sep 2026\GIS Sep 2026\Parcels.shp")
+parcels = gpd.read_file(os.getenv("PARCELS_PATH", r".\data\raw\Parcels.shp"))
 
 print("Number of records:")
 print(len(parcels))

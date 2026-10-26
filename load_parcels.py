@@ -18,7 +18,7 @@ load_dotenv()
 # SOURCE DATA
 # ---------------------------------------------------------
 
-PARCEL_PATH = r"C:\Users\knigh\Downloads\GIS Sep 2026\GIS Sep 2026\Parcels.shp"
+PARCEL_PATH = os.getenv("PARCELS_PATH", r".\data\raw\Parcels.shp")
 
 
 # ---------------------------------------------------------
