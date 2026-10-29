@@ -220,3 +220,19 @@ __marimo__/
 .streamlit/secrets.toml
 data/raw
 
+
+# Security hardening: secrets, keys and local data
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials*.json
+*.dump
+*.sql.gz
+*.duckdb
+/data/
+.vscode/

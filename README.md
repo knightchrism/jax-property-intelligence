@@ -1,5 +1,7 @@
 # jax-property-intelligence
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/knightchrism/jax-property-intelligence/badge)](https://scorecard.dev/viewer/?uri=github.com/knightchrism/jax-property-intelligence)
+
 **Duval County parcels, assessor records and addresses, loaded into PostGIS and explorable on an interactive map.**
 
 <p>
@@ -43,14 +45,17 @@ git clone https://github.com/knightchrism/jax-property-intelligence.git
 cd jax-property-intelligence
 python -m venv .venv; .venv\Scripts\activate
 pip install -r requirements.txt
-copy .env.example .env               # fill in DB_* values
+# one-time, as a superuser: schema, then least-privilege roles (jax_loader builds tables, jax_reader is SELECT-only)
+psql -U postgres -d jax_property -f sql\create_tables.sql
+psql -U postgres -d jax_property -v ON_ERROR_STOP=1 -v loader_password=<strong-pw-1> -v reader_password=<strong-pw-2> -f sql\roles.sql
+copy .env.example .env               # DB_USER=jax_loader + its password (never the postgres superuser)
 python test_db_connection.py
-psql -d jax_property -f sql\create_tables.sql
 python load_parcels.py               # PARCELS_PATH overrides .\data\raw\Parcels.shp
 python load_properties.py
 python load_addresses.py
 cd docs; python -m http.server 8000  # map at http://localhost:8000/
 ```
+Anything that only reads (notebooks, dashboards, the [jax-property-mcp](https://github.com/knightchrism/jax-property-mcp) server) should connect as `jax_reader`. Dependencies are pinned in `requirements.txt` (generated from `requirements.in`).
 
 ## AI / agent angle
 

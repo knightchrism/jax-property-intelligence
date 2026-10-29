@@ -1,0 +1,7 @@
+# Top-level dependencies. Edit this file, then regenerate the pinned requirements.txt with:
+#   uv pip compile --universal --python-version 3.12 --no-annotate requirements.in -o requirements.txt
+psycopg[binary]
+SQLAlchemy
+python-dotenv
+geopandas
+geoalchemy2
