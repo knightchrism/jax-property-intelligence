@@ -5,7 +5,7 @@
 **Duval County parcels, assessor records and addresses, loaded into PostGIS and explorable on an interactive map.**
 
 <p>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-00e5ff?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: All rights reserved" src="https://img.shields.io/badge/license-All%20rights%20reserved-00e5ff?style=flat-square"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3-00e5ff?style=flat-square&logo=python&logoColor=white">
   <img alt="PostGIS" src="https://img.shields.io/badge/PostgreSQL-PostGIS-0b1220?style=flat-square&logo=postgresql">
   <img alt="GeoPandas" src="https://img.shields.io/badge/GeoPandas-Shapely-0b1220?style=flat-square">
@@ -76,4 +76,4 @@ Python · GeoPandas · Shapely · SQLAlchemy + GeoAlchemy2 · psycopg 3 · Postg
 
 ## License
 
-Code: MIT, see [LICENSE](LICENSE).
+Copyright (c) 2026 GeoKnight GIS. All rights reserved. No copying or reuse without written permission; see [LICENSE](LICENSE). Third-party libraries and data keep their own licenses and terms (listed in [LICENSE](LICENSE)).
